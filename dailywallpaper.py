@@ -2,6 +2,8 @@ import requests
 import json
 # import os
 
+url = 'https://unsplash.com/napi/topics/wallpapers/photos?page={}&per_page=10'
+
 
 def pos_ratio(w, h):  # Positive aspect ratio to be used as wallpaper
     try:
@@ -17,9 +19,9 @@ def pos_ratio(w, h):  # Positive aspect ratio to be used as wallpaper
 
 
 def get_photosjson(page):  # Retrieve json from unsplashed
-    url = f'https://unsplash.com/napi/topics/wallpapers/photos?page={page}' \
-           '&per_page=10'
-    r = requests.get(url)
+    url_photos = url.format(page)
+    print(f'{url_photos = }')
+    r = requests.get(url_photos)
     try:
         tphotos = r.json()
     except ValueError:
@@ -55,34 +57,34 @@ def get_photourls():
 def downloadphoto():
     photourl = None
     while photourl is None:
-        for photo in library:
-            if photo == 'page' or library[photo]['retrieved']:
+        for photoid in library:
+            if photoid == 'page' or library[photoid]['retrieved']:
                 continue
-            photourl = library[photo]['rawurl']
+            photourl = library[photoid]['rawurl']
             break
         else:
             get_photourls()
     print('Downloading photo...')
-    with open('wallpaper/photo.jpg', 'wb') as fp:
+    with open(f'wallpaper/{photoid}.jpg', 'wb') as fp:
         r = requests.get(photourl)
         fp.write(r.content)
-    library[photo]['retrieved'] = True
+    library[photoid]['retrieved'] = True
     print('Downloaded photo.')
     # os.startfile('wallpaper\\photo.jpg')
 
 
-try:
-    with open('library.json', 'r') as fp:
-        library = json.load(fp)
-except FileNotFoundError:
-    print('JSON not found, creating new library.')
-    library = {'page': 0}
-
 if __name__ == '__main__':
+    try:
+        with open('library.json', 'r') as fp:
+            library = json.load(fp)
+    except FileNotFoundError:
+        print('Library not found, creating new library.')
+        library = {'page': 0}
+
     downloadphoto()
 
-with open('library.json', 'w') as fp:
-    json.dump(library, fp, indent=2)
+    with open('library.json', 'w') as fp:
+        json.dump(library, fp, indent=2)
 
 
 # https://unsplash.com/napi/topics/wallpapers/photos?page=1&per_page=10
