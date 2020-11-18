@@ -20,7 +20,6 @@ def pos_ratio(w, h):  # Positive aspect ratio to be used as wallpaper
 
 def get_photosjson(page):  # Retrieve json from unsplashed
     url_photos = url.format(page)
-    print(f'{url_photos = }')
     r = requests.get(url_photos)
     try:
         tphotos = r.json()
@@ -29,48 +28,46 @@ def get_photosjson(page):  # Retrieve json from unsplashed
     return tphotos
 
 
-def get_photourls():
-    page = library['page']
-    photosjson = get_photosjson(page+1)
+def get_photodetails(lib):
+    addtllib = dict()
     count = 0
+    page = lib['page']
+    photosjson = get_photosjson(page+1)
     for photo in photosjson:
         id = photo['id']
         width = photo['width']
         height = photo['height']
         rawurl = photo['urls']['raw']
         uploadedby = photo['user']['username']
-        if id in library or not pos_ratio(width, height) or \
+        description = photo['alt_description']
+        if id in lib or not pos_ratio(width, height) or \
            pos_ratio(width, height) is None:
             continue
-        library[id] = {
+        addtllib[id] = {
             'retrieved': False,
             'width': int(width),
             'height': int(height),
             'rawurl': rawurl,
-            'uploadedby': uploadedby
+            'uploadedby': uploadedby,
+            'description': description
             }
         count += 1
-    library['page'] = page+1
-    print(f'Retrieved {count} photo URLs.')
+    addtllib['page'] = page+1
+    return addtllib, count  # Return new lib of urls instead of muting old lib
 
 
-def downloadphoto():
-    photourl = None
-    while photourl is None:
-        for photoid in library:
-            if photoid == 'page' or library[photoid]['retrieved']:
-                continue
-            photourl = library[photoid]['rawurl']
-            break
-        else:
-            get_photourls()
-    print('Downloading photo...')
-    with open(f'wallpaper/{photoid}.jpg', 'wb') as fp:
+def downloadphoto(lib):
+    for photoid in lib:
+        if photoid == 'page' or lib[photoid]['retrieved']:
+            continue
+        photourl = lib[photoid]['rawurl']
+        break  # Downloads only one photo
+    else:
+        return None
+    with open(f'wallpapers/{photoid}.jpg', 'wb') as fp:
         r = requests.get(photourl)
         fp.write(r.content)
-    library[photoid]['retrieved'] = True
-    print('Downloaded photo.')
-    # os.startfile('wallpaper\\photo.jpg')
+    return photoid
 
 
 if __name__ == '__main__':
@@ -81,10 +78,23 @@ if __name__ == '__main__':
         print('Library not found, creating new library.')
         library = {'page': 0}
 
-    downloadphoto()
+    print('Downloading photo...')
+
+    photo = None
+    while photo is None:
+        photo = downloadphoto(library)
+        if photo is None:
+            print('All photos in library retrieved.\nRetrieving more.')
+            addtlurls = get_photodetails(library)  # get dict with new urls
+            print(f'Retrieved {addtlurls[1]} photo URLs.')
+            library.update(addtlurls[0])  # Update(merge) old dict with addtl
+
+    desc = library[photo]['description']
+    library[photo]['retrieved'] = True
+    print(f'Downloaded photo. {photo} - {desc}')
 
     with open('library.json', 'w') as fp:
         json.dump(library, fp, indent=2)
-
+    input('\nPress any key to exit.')
 
 # https://unsplash.com/napi/topics/wallpapers/photos?page=1&per_page=10

@@ -3,4 +3,9 @@
 Downloads a wallpaper from Unsplash.com
 
 Gets a list of wallpapers in JSON format from Unsplash
-Downloads only un-retrieved photos
+then downloads only un-retrieved photos
+
+TODO:
+input number of wallpapers to download
+set wallpaper after downloading
+search feature
